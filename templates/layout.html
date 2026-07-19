@@ -1,0 +1,17 @@
+{{define "layout"}}<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{.Title}} · MomoPay CG</title>
+  <link rel="stylesheet" href="/static/app.css">
+  <script src="/static/vendor/htmx.min.js"></script>
+  <script src="/static/vendor/htmx-ext-sse.js"></script>
+  <script src="/static/app.js" defer></script>
+</head>
+<body{{if .CSRFToken}} hx-headers='{"X-CSRF-Token":"{{.CSRFToken}}"}'{{end}}>
+  <div id="dialog"></div>
+  {{template "content" .}}
+</body>
+</html>
+{{end}}

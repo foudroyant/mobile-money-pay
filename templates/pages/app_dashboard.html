@@ -1,0 +1,70 @@
+{{define "content"}}
+<header class="topbar">
+  <span class="brand">MomoPay CG · Marchand</span>
+  <form method="post" action="/app/logout">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <button type="submit" class="btn secondary small">Déconnexion</button>
+  </form>
+</header>
+<main>
+  <div class="card">
+    <h2>Clé API</h2>
+    <p class="muted">Utilisez cette clé pour créer des liens de paiement depuis votre application (voir AGENTS.md pour la référence de l'API).</p>
+    <div class="key-reveal">{{.KeyPrefix}}…</div>
+    <div id="app-key-reveal"></div>
+    <button class="btn secondary small" hx-post="/app/rotate-key" hx-target="#app-key-reveal" hx-swap="innerHTML" hx-confirm="Générer une nouvelle clé ? L'ancienne cessera de fonctionner immédiatement.">Régénérer ma clé</button>
+  </div>
+
+  <div class="card">
+    <h2>Webhook</h2>
+    <p class="muted">URL appelée (signée HMAC) lorsqu'une transaction est validée ou rejetée. Voir AGENTS.md pour le format.</p>
+    <form method="post" action="/app/webhook">
+      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+      <div class="field">
+        <label for="webhook_url">URL du webhook</label>
+        <input type="url" id="webhook_url" name="webhook_url" value="{{.WebhookURL}}" placeholder="https://votre-site.cg/webhooks/momopay">
+      </div>
+      <button type="submit" class="btn secondary">Enregistrer</button>
+    </form>
+    {{if .WebhookSecret}}
+    <div class="field" style="margin-top:1rem">
+      <label>Secret de signature</label>
+      <div class="key-reveal">{{.WebhookSecret}}</div>
+    </div>
+    {{end}}
+  </div>
+
+  <div class="card">
+    <h2>Nouveau lien de paiement</h2>
+    <form hx-post="/app/transactions" hx-swap="none" hx-on::after-request="if(event.detail.successful) this.reset()">
+      <div class="field">
+        <label for="amount">Montant (FCFA)</label>
+        <input type="number" id="amount" name="amount" min="1" step="1" required>
+      </div>
+      <div class="field">
+        <label for="description">Description</label>
+        <input type="text" id="description" name="description">
+      </div>
+      <div class="field">
+        <label for="success_url">URL de succès (optionnel)</label>
+        <input type="url" id="success_url" name="success_url" placeholder="https://votre-site.cg/merci">
+      </div>
+      <button type="submit" class="btn">Créer le lien</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Mes transactions</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Date</th><th>Marchand</th><th>Montant</th><th>Description</th><th>Statut</th><th>Réf. payeur</th><th>Lien</th><th>Détails</th></tr>
+        </thead>
+        <tbody id="txn-rows" hx-ext="sse" sse-connect="/app/stream" sse-swap="txn-new,txn-update" hx-swap="afterbegin">
+          {{range .Rows}}{{template "txn_row_new" .}}{{end}}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>
+{{end}}

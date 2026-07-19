@@ -1,0 +1,25 @@
+{{define "txn_row_cells"}}
+<td>{{.Created}}</td>
+<td>{{.MerchantName}}</td>
+<td>{{xaf .Amount}}</td>
+<td>{{.Description}}</td>
+<td><span class="badge {{.Status}}">{{.Status}}</span></td>
+<td>{{if .PayerRef}}{{.PayerMSISDN}}<br><span class="muted">{{.PayerRef}}</span>{{end}}</td>
+<td class="row-actions">
+  <a href="{{.PaymentURL}}" target="_blank" rel="noopener" title="{{.PaymentURL}}">Ouvrir</a>
+  <button type="button" class="btn small secondary" data-copy="{{.PaymentURL}}">Copier</button>
+</td>
+<td><button type="button" class="btn small secondary" hx-get="{{if .CanResolve}}/admin{{else}}/app{{end}}/transactions/{{.ID}}" hx-target="#dialog" hx-swap="innerHTML">Détails</button></td>
+{{if .CanResolve}}
+<td class="row-actions">
+  {{if eq .Status "submitted"}}
+  <button class="btn small" hx-post="/admin/transactions/{{.ID}}/validate" hx-swap="none" hx-confirm="Confirmer la validation de ce paiement ?">Valider</button>
+  <button class="btn small danger" hx-post="/admin/transactions/{{.ID}}/reject" hx-swap="none" hx-prompt="Motif du rejet (optionnel) :" hx-confirm="Confirmer le rejet de ce paiement ?">Rejeter</button>
+  {{end}}
+</td>
+{{end}}
+{{end}}
+
+{{define "txn_row_new"}}<tr id="txn-{{.ID}}" class="flash">{{template "txn_row_cells" .}}</tr>{{end}}
+
+{{define "txn_row_update"}}<tr id="txn-{{.ID}}" hx-swap-oob="true" class="flash">{{template "txn_row_cells" .}}</tr>{{end}}

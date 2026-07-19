@@ -1,0 +1,30 @@
+{{define "merchants_panel"}}
+<div id="merchants-panel">
+  {{if .NewKey}}
+  <div class="alert success">
+    <strong>Clé API pour {{.NewName}}</strong> — copiez-la maintenant, elle ne sera plus affichée :
+    <div class="key-reveal">{{.NewKey}}</div>
+  </div>
+  {{end}}
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Nom</th><th>Email</th><th>Clé</th><th>Statut</th><th></th></tr></thead>
+      <tbody>
+        {{range .Merchants}}
+        <tr>
+          <td>{{.Name}}</td>
+          <td>{{.Email}}</td>
+          <td>{{.KeyPrefix}}…</td>
+          <td><span class="badge {{if eq .Status "active"}}validated{{else}}rejected{{end}}">{{.Status}}</span></td>
+          <td class="row-actions">
+            <button class="btn small secondary" hx-post="/admin/merchants/{{.ID}}/rotate-key" hx-target="#merchants-panel" hx-swap="outerHTML" hx-confirm="Générer une nouvelle clé pour {{.Name}} ? L'ancienne cessera de fonctionner.">Régénérer la clé</button>
+            <button class="btn small danger" hx-post="/admin/merchants/{{.ID}}/toggle-status" hx-target="#merchants-panel" hx-swap="outerHTML" hx-confirm="Confirmer ?">{{if eq .Status "active"}}Désactiver{{else}}Activer{{end}}</button>
+          </td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+  </div>
+</div>
+{{end}}

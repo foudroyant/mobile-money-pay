@@ -1,0 +1,40 @@
+{{define "content"}}
+<header class="topbar">
+  <span class="brand">MomoPay CG · Admin</span>
+  <form method="post" action="/admin/logout">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <button type="submit" class="btn secondary small">Déconnexion</button>
+  </form>
+</header>
+<main>
+  <nav class="tabs">
+    <a href="/admin">Transactions</a>
+    <a href="/admin/merchants">Marchands</a>
+    <a href="/admin/reconcile" class="active">Rapprochement</a>
+  </nav>
+
+  <div class="card">
+    <h2>Confirmer des ID de transaction Airtel Money</h2>
+    <p class="muted">Collez un ou plusieurs ID de transaction confirmés sur votre tableau de bord Airtel Money (un par ligne). Toute transaction déjà soumise avec cette référence est validée immédiatement ; les autres sont revérifiées automatiquement toutes les {{.SweepIntervalLabel}}.</p>
+    <form hx-post="/admin/reconcile" hx-swap="none" hx-on::after-request="if(event.detail.successful) this.reset()">
+      <div class="field">
+        <label for="refs">ID de transaction (un par ligne)</label>
+        <textarea id="refs" name="refs" rows="4" required placeholder="AIRTEL-TXN-123456&#10;AIRTEL-TXN-123457"></textarea>
+      </div>
+      <button type="submit" class="btn">Rapprocher</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>En attente de correspondance</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Ajouté le</th><th>ID de transaction</th><th>Ajouté par</th><th></th></tr></thead>
+        <tbody id="reconcile-rows" hx-ext="sse" sse-connect="/admin/reconcile/stream" sse-swap="ref-new,ref-removed" hx-swap="afterbegin">
+          {{range .Rows}}{{template "reconcile_row_new" .}}{{end}}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>
+{{end}}

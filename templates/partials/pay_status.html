@@ -1,0 +1,49 @@
+{{define "pay_status"}}
+<div class="card">
+  <span class="badge {{.Status}}">
+    {{if eq .Status "pending"}}En attente de paiement
+    {{else if eq .Status "submitted"}}En attente de validation
+    {{else if eq .Status "validated"}}Paiement validé
+    {{else if eq .Status "rejected"}}Rejeté — à corriger
+    {{end}}
+  </span>
+
+  {{if eq .Status "validated"}}
+    {{if .SuccessURL}}<meta http-equiv="refresh" content="2;url={{.SuccessURL}}">{{end}}
+    <p style="margin-top:1rem">Merci ! Votre paiement a été confirmé par notre équipe.</p>
+    {{if .SuccessURL}}<p class="muted">Redirection en cours…</p>{{end}}
+
+  {{else if eq .Status "submitted"}}
+    <p style="margin-top:1rem">Nous vérifions votre paiement Airtel Money. Cette page se mettra à jour automatiquement dès validation.</p>
+    <p class="muted">Numéro renseigné : {{.PayerMSISDN}} · Référence : {{.PayerRef}}</p>
+
+  {{else}}
+    {{if eq .Status "rejected"}}
+      <div class="alert error">Votre soumission n'a pas pu être validée{{if .ResolutionNote}} : {{.ResolutionNote}}{{end}}. Merci de vérifier les informations et réessayer.</div>
+    {{end}}
+
+    <h2 style="margin-top:1rem">Comment payer</h2>
+    <ol class="steps">
+      <li>Composez <strong>*128#</strong> sur votre téléphone Airtel.</li>
+      <li>Choisissez « Transfert / Paiement marchand ».</li>
+      <li>Entrez le numéro marchand ci-dessous et le montant {{xaf .Amount}}.</li>
+      <li>Validez avec votre code secret Airtel Money.</li>
+      <li>Renseignez ci-dessous le numéro utilisé et l'ID de transaction reçu par SMS.</li>
+    </ol>
+    <div class="pay-number">{{.PayNumber}}</div>
+
+    <form hx-post="/pay/{{.Token}}/submit" hx-target="#pay-status" hx-swap="innerHTML">
+      <div class="field">
+        <label for="phone">Numéro de téléphone utilisé</label>
+        <input type="tel" id="phone" name="phone" placeholder="06 xxx xx xx" value="{{.PayerMSISDN}}" required>
+      </div>
+      <div class="field">
+        <label for="operator_ref">ID de transaction Airtel Money</label>
+        <input type="text" id="operator_ref" name="operator_ref" placeholder="Reçu par SMS après paiement" required>
+        <div class="hint">Cet identifiant se trouve dans le SMS de confirmation Airtel Money.</div>
+      </div>
+      <button type="submit" class="btn">J'ai payé, valider ma soumission</button>
+    </form>
+  {{end}}
+</div>
+{{end}}

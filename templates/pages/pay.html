@@ -1,0 +1,16 @@
+{{define "content"}}
+<header class="topbar">
+  <span class="brand">MomoPay CG</span>
+</header>
+<main class="narrow">
+  <div class="card">
+    <div class="muted">{{.MerchantName}}</div>
+    <div class="amount">{{xaf .Amount}}</div>
+    {{if .Description}}<p class="muted">{{.Description}}</p>{{end}}
+  </div>
+
+  <div id="pay-status" hx-ext="sse" sse-connect="/pay/{{.Token}}/stream" sse-swap="status" hx-swap="innerHTML">
+    {{template "pay_status" .}}
+  </div>
+</main>
+{{end}}

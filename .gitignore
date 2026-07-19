@@ -1,0 +1,6 @@
+/momopay
+/momopay.exe
+/pb_data/
+*.log
+cookies*.txt
+.env

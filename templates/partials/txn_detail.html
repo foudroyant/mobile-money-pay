@@ -1,0 +1,43 @@
+{{define "txn_detail"}}
+<div class="dialog-backdrop">
+  <div class="dialog">
+    <h2>{{xaf .Amount}}</h2>
+    <p><span class="badge {{.Status}}">{{.Status}}</span> · {{.MerchantName}} · {{.Operator}} · {{.Mode}}</p>
+    {{if .Description}}<p class="muted">{{.Description}}</p>{{end}}
+    <p class="muted">Créée le {{.Created}}</p>
+
+    {{if .PayerRef}}
+    <div class="field">
+      <label>Payeur</label>
+      <div>{{.PayerMSISDN}} — réf. opérateur <strong>{{.PayerRef}}</strong></div>
+    </div>
+    {{end}}
+
+    {{if .ResolutionNote}}
+    <div class="field">
+      <label>Note de résolution</label>
+      <div>{{.ResolutionNote}}</div>
+    </div>
+    {{end}}
+
+    <div class="field">
+      <label>Lien de paiement</label>
+      <div class="row-actions">
+        <a href="{{.PaymentURL}}" target="_blank" rel="noopener" style="word-break:break-all">{{.PaymentURL}}</a>
+        <button type="button" class="btn small secondary" data-copy="{{.PaymentURL}}">Copier</button>
+      </div>
+    </div>
+
+    {{if and .CanResolve (eq .Status "submitted")}}
+    <div class="dialog-actions">
+      <button class="btn" hx-post="/admin/transactions/{{.ID}}/validate" hx-target="#dialog" hx-swap="innerHTML" hx-confirm="Confirmer la validation de ce paiement ?">Valider</button>
+      <button class="btn danger" hx-post="/admin/transactions/{{.ID}}/reject" hx-target="#dialog" hx-swap="innerHTML" hx-prompt="Motif du rejet (optionnel) :" hx-confirm="Confirmer le rejet de ce paiement ?">Rejeter</button>
+    </div>
+    {{end}}
+
+    <div class="dialog-actions">
+      <button class="btn secondary" hx-get="/dialog/close" hx-target="#dialog" hx-swap="innerHTML">Fermer</button>
+    </div>
+  </div>
+</div>
+{{end}}

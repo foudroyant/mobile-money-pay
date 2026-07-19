@@ -1,0 +1,10 @@
+{{define "reconcile_row_new"}}
+<tr id="ref-{{.ID}}" class="flash">
+  <td>{{.Created}}</td>
+  <td>{{.OperatorRef}}</td>
+  <td>{{.AddedByEmail}}</td>
+  <td><button type="button" class="btn small danger" hx-post="/admin/reconcile/{{.ID}}/delete" hx-swap="none" hx-confirm="Supprimer cette référence en attente ?">Supprimer</button></td>
+</tr>
+{{end}}
+
+{{define "reconcile_row_removed"}}<tr id="ref-{{.ID}}" hx-swap-oob="delete"></tr>{{end}}
