@@ -1,0 +1,64 @@
+{{define "content"}}
+<header class="topbar">
+  <span class="brand">MomoPay CG · Admin</span>
+  <form method="post" action="/admin/logout">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <button type="submit" class="btn secondary small">Déconnexion</button>
+  </form>
+</header>
+<main>
+  <nav class="tabs">
+    <a href="/admin">Transactions</a>
+    <a href="/admin/links" class="active">Liens de paiement</a>
+    <a href="/admin/merchants">Marchands</a>
+    <a href="/admin/reconcile">Rapprochement</a>
+  </nav>
+
+  <div class="card">
+    <h2>Nouveau lien de paiement</h2>
+    <form hx-post="/admin/links" hx-swap="none" hx-encoding="multipart/form-data" hx-on::after-request="if(event.detail.successful) this.reset()">
+      <div class="field">
+        <label for="merchant">Marchand</label>
+        <select id="merchant" name="merchant" required>
+          {{range .Merchants}}<option value="{{.ID}}">{{.Name}}</option>{{end}}
+        </select>
+      </div>
+      <div class="field">
+        <label for="title">Titre</label>
+        <input type="text" id="title" name="title" required>
+      </div>
+      <div class="field">
+        <label for="description">Description</label>
+        <input type="text" id="description" name="description">
+      </div>
+      <div class="field">
+        <label for="amount">Montant (FCFA)</label>
+        <input type="number" id="amount" name="amount" min="1" step="1" required>
+      </div>
+      <div class="field">
+        <label for="image">Image (optionnel)</label>
+        <input type="file" id="image" name="image" accept="image/jpeg,image/png,image/webp">
+      </div>
+      <div class="field">
+        <label for="success_url">URL de succès (optionnel)</label>
+        <input type="url" id="success_url" name="success_url" placeholder="https://votre-site.cg/merci">
+      </div>
+      <button type="submit" class="btn">Créer le lien</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Liens de paiement</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th></th><th>Titre</th><th>Marchand</th><th>Montant</th><th>Statut</th><th>Lien</th><th>Actions</th></tr>
+        </thead>
+        <tbody id="link-rows" hx-ext="sse" sse-connect="/admin/links/stream" sse-swap="link-new,link-update" hx-swap="afterbegin">
+          {{range .Rows}}{{template "link_row_new" .}}{{end}}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>
+{{end}}

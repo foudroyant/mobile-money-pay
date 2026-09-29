@@ -1,0 +1,25 @@
+{{define "link_row_cells"}}
+<td>{{if .ImageURL}}<img class="thumb" src="{{.ImageURL}}" alt="">{{end}}</td>
+<td>{{.Title}}</td>
+<td>{{.MerchantName}}</td>
+<td>{{xaf .Amount}}</td>
+<td><span class="badge {{.Status}}">{{.Status}}</span></td>
+<td class="row-actions">
+  <a href="{{.PaymentURL}}" target="_blank" rel="noopener" title="{{.PaymentURL}}">Ouvrir</a>
+  <button type="button" class="btn small secondary" data-copy="{{.PaymentURL}}">Copier</button>
+</td>
+<td class="row-actions">
+  {{if eq .Status "unpublished"}}
+  <button class="btn small" hx-post="{{if .CanManage}}/admin{{else}}/app{{end}}/links/{{.ID}}/publish" hx-swap="none" hx-confirm="Republier ce lien ?">Publier</button>
+  {{else if eq .Status "published"}}
+  <button class="btn small secondary" hx-post="{{if .CanManage}}/admin{{else}}/app{{end}}/links/{{.ID}}/unpublish" hx-swap="none" hx-confirm="Dépublier ce lien ? Il ne sera plus payable, mais pourra être republié.">Dépublier</button>
+  {{end}}
+  {{if ne .Status "revoked"}}
+  <button class="btn small danger" hx-post="{{if .CanManage}}/admin{{else}}/app{{end}}/links/{{.ID}}/revoke" hx-swap="none" hx-confirm="Révoquer définitivement ce lien ? Cette action est irréversible.">Révoquer</button>
+  {{end}}
+</td>
+{{end}}
+
+{{define "link_row_new"}}<tr id="link-{{.ID}}" class="flash">{{template "link_row_cells" .}}</tr>{{end}}
+
+{{define "link_row_update"}}<tr id="link-{{.ID}}" hx-swap-oob="true" class="flash">{{template "link_row_cells" .}}</tr>{{end}}

@@ -4,13 +4,40 @@
 </header>
 <main class="narrow">
   <div class="card">
+    {{if .ImageURL}}<img class="product-image" src="{{.ImageURL}}" alt="{{.ProductTitle}}">{{end}}
     <div class="muted">{{.MerchantName}}</div>
+    <h1>{{.ProductTitle}}</h1>
     <div class="amount">{{xaf .Amount}}</div>
     {{if .Description}}<p class="muted">{{.Description}}</p>{{end}}
   </div>
 
-  <div id="pay-status" hx-ext="sse" sse-connect="/pay/{{.Token}}/stream" sse-swap="status" hx-swap="innerHTML">
-    {{template "pay_status" .}}
-  </div>
+  <div id="pay-status">{{template "pay_form" .}}</div>
 </main>
+{{end}}
+
+{{define "pay_form"}}
+<div class="card">
+  <h2>Comment payer</h2>
+  <ol class="steps">
+    <li>Composez <strong>*128#</strong> sur votre téléphone Airtel.</li>
+    <li>Choisissez « Transfert / Paiement marchand ».</li>
+    <li>Entrez le numéro marchand ci-dessous et le montant {{xaf .Amount}}.</li>
+    <li>Validez avec votre code secret Airtel Money.</li>
+    <li>Renseignez ci-dessous le numéro utilisé et l'ID de transaction reçu par SMS.</li>
+  </ol>
+  <div class="pay-number">{{.PayNumber}}</div>
+
+  <form hx-post="/pay/{{.Token}}/submit" hx-target="#pay-status" hx-swap="innerHTML">
+    <div class="field">
+      <label for="phone">Numéro de téléphone utilisé</label>
+      <input type="tel" id="phone" name="phone" placeholder="06 xxx xx xx" required>
+    </div>
+    <div class="field">
+      <label for="operator_ref">ID de transaction Airtel Money</label>
+      <input type="text" id="operator_ref" name="operator_ref" placeholder="Reçu par SMS après paiement" required>
+      <div class="hint">Cet identifiant se trouve dans le SMS de confirmation Airtel Money.</div>
+    </div>
+    <button type="submit" class="btn">J'ai payé, valider ma soumission</button>
+  </form>
+</div>
 {{end}}

@@ -9,33 +9,14 @@
 <main>
   <nav class="tabs">
     <a href="/admin" class="active">Transactions</a>
+    <a href="/admin/links">Liens de paiement</a>
     <a href="/admin/merchants">Marchands</a>
     <a href="/admin/reconcile">Rapprochement</a>
   </nav>
 
   <div class="card">
-    <h2>Nouveau lien de paiement</h2>
-    <form hx-post="/admin/transactions" hx-swap="none" hx-on::after-request="if(event.detail.successful) this.reset()">
-      <div class="field">
-        <label for="merchant">Marchand</label>
-        <select id="merchant" name="merchant" required>
-          {{range .Merchants}}<option value="{{.ID}}">{{.Name}}</option>{{end}}
-        </select>
-      </div>
-      <div class="field">
-        <label for="amount">Montant (FCFA)</label>
-        <input type="number" id="amount" name="amount" min="1" step="1" required>
-      </div>
-      <div class="field">
-        <label for="description">Description</label>
-        <input type="text" id="description" name="description">
-      </div>
-      <button type="submit" class="btn">Créer le lien</button>
-    </form>
-  </div>
-
-  <div class="card">
     <h2>Transactions</h2>
+    <p class="muted">Historique des paiements soumis contre un lien de paiement. Pour créer un nouveau lien, voir l'onglet « Liens de paiement ».</p>
     <div class="table-wrap">
       <table>
         <thead>

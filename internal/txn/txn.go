@@ -10,8 +10,6 @@ import (
 	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase/core"
 	"github.com/pocketbase/pocketbase/tools/types"
-
-	"momopay/internal/payid"
 )
 
 const (
@@ -21,69 +19,35 @@ const (
 	StatusRejected  = "rejected"
 )
 
-const (
-	OperatorAirtel = "airtel"
-	OperatorMTN    = "mtn"
-)
-
-const (
-	ModeLive = "live"
-	ModeTest = "test"
-)
-
-const (
-	CreatedByAPI      = "api"
-	CreatedByMerchant = "merchant"
-	CreatedByAdmin    = "admin"
-)
-
 var (
-	ErrOperatorNotSupported = errors.New("txn: operator not supported yet")
-	ErrNotSubmittable       = errors.New("txn: transaction is not open for a new submission")
-	ErrNotResolvable        = errors.New("txn: transaction is not awaiting a decision")
+	ErrNotSubmittable = errors.New("txn: transaction is not open for a new submission")
+	ErrNotResolvable  = errors.New("txn: transaction is not awaiting a decision")
 )
 
 const CollectionName = "transactions"
 
-type CreateParams struct {
-	MerchantID  string
-	Amount      float64
-	Description string
-	Metadata    types.JSONRaw
-	SuccessURL  string
-	CancelURL   string
-	Mode        string
-	CreatedBy   string
-}
-
-// Create makes a new pending transaction with a fresh public payment token.
-// Operator is always "airtel" for now (MTN is not wired up yet).
-func Create(app core.App, p CreateParams) (*core.Record, error) {
+// CreateFromLink starts a new pending payment attempt against a payment
+// link. amount/currency/description/operator/mode/merchant are copied from
+// the link at this moment (a snapshot), so the transaction's record of what
+// was paid stays accurate even if the link is edited or revoked later.
+func CreateFromLink(app core.App, link *core.Record) (*core.Record, error) {
 	collection, err := app.FindCollectionByNameOrId(CollectionName)
 	if err != nil {
 		return nil, err
 	}
 
-	token, err := payid.GeneratePaymentToken()
-	if err != nil {
-		return nil, err
-	}
-
 	record := core.NewRecord(collection)
-	record.Set("merchant", p.MerchantID)
-	record.Set("token", token)
-	record.Set("amount", p.Amount)
-	record.Set("currency", "XAF")
-	record.Set("operator", OperatorAirtel)
-	record.Set("description", p.Description)
-	if len(p.Metadata) > 0 {
-		record.Set("metadata", p.Metadata)
-	}
-	record.Set("success_url", p.SuccessURL)
-	record.Set("cancel_url", p.CancelURL)
-	record.Set("mode", p.Mode)
-	record.Set("created_by", p.CreatedBy)
+	record.Set("payment_link", link.Id)
+	record.Set("merchant", link.GetString("merchant"))
+	record.Set("amount", link.GetFloat("amount"))
+	record.Set("currency", link.GetString("currency"))
+	record.Set("description", link.GetString("title"))
+	record.Set("operator", link.GetString("operator"))
+	record.Set("mode", link.GetString("mode"))
 	record.Set("status", StatusPending)
+	if meta := Metadata(link); meta != nil {
+		record.Set("metadata", meta)
+	}
 
 	if err := app.Save(record); err != nil {
 		return nil, err

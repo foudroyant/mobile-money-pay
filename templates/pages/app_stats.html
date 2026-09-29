@@ -1,0 +1,18 @@
+{{define "content"}}
+<header class="topbar">
+  <span class="brand">MomoPay CG · Marchand</span>
+  <form method="post" action="/app/logout">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <button type="submit" class="btn secondary small">Déconnexion</button>
+  </form>
+</header>
+<main>
+  <nav class="tabs">
+    <a href="/app">Transactions</a>
+    <a href="/app/links">Liens de paiement</a>
+    <a href="/app/stats" class="active">Statistiques</a>
+  </nav>
+
+  {{template "stats_body" .}}
+</main>
+{{end}}

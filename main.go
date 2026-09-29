@@ -22,6 +22,7 @@ func main() {
 
 	hub := realtime.NewHub()
 	handlers.BindRealtimeHooks(app, hub)
+	handlers.BindLinkRealtimeHooks(app, hub)
 	handlers.BindReconcileHooks(app, hub)
 
 	app.OnBootstrap().BindFunc(func(e *core.BootstrapEvent) error {

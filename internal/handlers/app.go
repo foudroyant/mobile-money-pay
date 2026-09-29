@@ -2,14 +2,13 @@ package handlers
 
 import (
 	"net/http"
-	"strconv"
 
 	"github.com/pocketbase/pocketbase/core"
 
 	"momopay/internal/payid"
 	"momopay/internal/realtime"
 	"momopay/internal/session"
-	"momopay/internal/txn"
+	"momopay/internal/stats"
 	"momopay/internal/view"
 )
 
@@ -32,10 +31,12 @@ func registerAppRoutes(se *core.ServeEvent, app core.App, hub *realtime.Hub, sto
 	protected.POST("/logout", appLogout(store))
 	protected.GET("", appDashboard(app, store))
 	protected.GET("/stream", appStream(hub))
-	protected.POST("/transactions", appCreateTransaction(app))
 	protected.GET("/transactions/{id}", appTransactionDetail(app))
+	protected.GET("/stats", appStats(app, store))
 	protected.POST("/rotate-key", appRotateKey(app))
 	protected.POST("/webhook", appUpdateWebhook(app))
+
+	registerAppLinkRoutes(protected, app, hub, store)
 }
 
 func appLoginPage() func(*core.RequestEvent) error {
@@ -105,6 +106,28 @@ func appStream(hub *realtime.Hub) func(*core.RequestEvent) error {
 	}
 }
 
+// appStats is the merchant-facing counterpart of adminMerchantStats
+// (merchants.go) — same sales summary and 30-day evolution chart, scoped
+// to the logged-in merchant's own account.
+func appStats(app core.App, store *session.Store) func(*core.RequestEvent) error {
+	return func(e *core.RequestEvent) error {
+		summary, err := stats.ForMerchant(app, e.Auth.Id, statsWindowDays)
+		if err != nil {
+			return e.InternalServerError("Failed to compute stats.", err)
+		}
+
+		data := struct {
+			Layout
+			StatsView
+		}{
+			Layout:    Layout{Title: "Statistiques", CSRFToken: store.CSRFToken(e.Request)},
+			StatsView: statsViewData(e.Auth.GetString("name"), summary),
+		}
+
+		return renderPage(e, "app_stats", data)
+	}
+}
+
 // appTransactionDetail is the merchant-facing counterpart of
 // adminTransactionDetail — same #dialog target, but read-only (CanResolve
 // false) and scoped to the merchant's own transactions.
@@ -115,34 +138,6 @@ func appTransactionDetail(app core.App) func(*core.RequestEvent) error {
 			return e.NotFoundError("Transaction introuvable.", nil)
 		}
 		return renderDialog(e, txnRowData(app, record, false))
-	}
-}
-
-// appCreateTransaction creates a payment link for the logged-in merchant.
-// As with the admin dashboard, the response is discarded (hx-swap="none")
-// and the new row reaches the dashboard through the SSE broadcast instead,
-// so the actor doesn't see the row inserted twice.
-func appCreateTransaction(app core.App) func(*core.RequestEvent) error {
-	return func(e *core.RequestEvent) error {
-		amount, err := strconv.ParseFloat(e.Request.FormValue("amount"), 64)
-		if err != nil || amount <= 0 {
-			return e.BadRequestError("Merci de renseigner un montant valide.", nil)
-		}
-
-		_, err = txn.Create(app, txn.CreateParams{
-			MerchantID:  e.Auth.Id,
-			Amount:      amount,
-			Description: e.Request.FormValue("description"),
-			SuccessURL:  e.Request.FormValue("success_url"),
-			CancelURL:   e.Request.FormValue("cancel_url"),
-			Mode:        txn.ModeLive,
-			CreatedBy:   txn.CreatedByMerchant,
-		})
-		if err != nil {
-			return e.InternalServerError("Failed to create transaction.", err)
-		}
-
-		return e.NoContent(http.StatusCreated)
 	}
 }
 

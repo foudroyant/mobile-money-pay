@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"net/http"
-	"strconv"
 
 	"github.com/pocketbase/pocketbase/core"
 
@@ -13,9 +12,9 @@ import (
 )
 
 // registerAdminRoutes exposes the staff back office: login, a live
-// dashboard of every transaction, validate/reject actions and the ability
-// to create a payment link on behalf of any merchant. Merchant account
-// management lives in merchants.go.
+// read-only ledger of every transaction with validate/reject actions.
+// Payment link ("product") management lives in links.go, merchant account
+// management in merchants.go.
 func registerAdminRoutes(se *core.ServeEvent, app core.App, hub *realtime.Hub, store *session.Store) {
 	g := se.Router.Group("/admin")
 	g.BindFunc(store.LoadAuth())
@@ -30,13 +29,13 @@ func registerAdminRoutes(se *core.ServeEvent, app core.App, hub *realtime.Hub, s
 	protected.POST("/logout", adminLogout(store))
 	protected.GET("", adminDashboard(app, store))
 	protected.GET("/stream", adminStream(hub))
-	protected.POST("/transactions", adminCreateTransaction(app))
 	protected.GET("/transactions/{id}", adminTransactionDetail(app))
 	protected.POST("/transactions/{id}/validate", adminResolveTransaction(app, true))
 	protected.POST("/transactions/{id}/reject", adminResolveTransaction(app, false))
 
-	registerAdminMerchantRoutes(protected, app)
-	registerAdminReconcileRoutes(protected, app, hub)
+	registerAdminLinkRoutes(protected, app, hub, store)
+	registerAdminMerchantRoutes(protected, app, store)
+	registerAdminReconcileRoutes(protected, app, hub, store)
 }
 
 // csrfMiddleware rejects state-changing (non-GET) requests whose
@@ -104,23 +103,12 @@ func adminDashboard(app core.App, store *session.Store) func(*core.RequestEvent)
 			rows[i] = txnRowData(app, r, true)
 		}
 
-		merchants, err := app.FindRecordsByFilter("merchants", "status = 'active'", "name", 200, 0)
-		if err != nil {
-			return e.InternalServerError("Failed to load merchants.", err)
-		}
-		merchantOpts := make([]MerchantOption, len(merchants))
-		for i, m := range merchants {
-			merchantOpts[i] = merchantOptionData(m)
-		}
-
 		data := struct {
 			Layout
-			Rows      []TxnRow
-			Merchants []MerchantOption
+			Rows []TxnRow
 		}{
-			Layout:    Layout{Title: "Tableau de bord", CSRFToken: store.CSRFToken(e.Request)},
-			Rows:      rows,
-			Merchants: merchantOpts,
+			Layout: Layout{Title: "Tableau de bord", CSRFToken: store.CSRFToken(e.Request)},
+			Rows:   rows,
 		}
 
 		return renderPage(e, "admin_dashboard", data)
@@ -143,37 +131,6 @@ func adminTransactionDetail(app core.App) func(*core.RequestEvent) error {
 			return e.NotFoundError("Transaction introuvable.", nil)
 		}
 		return renderDialog(e, txnRowData(app, record, true))
-	}
-}
-
-// adminCreateTransaction creates a payment link on behalf of a merchant.
-// The response body is discarded by the caller (hx-swap="none"): the new
-// row reaches every open admin dashboard, including the actor's own,
-// through the "txn-new" SSE broadcast — see BindRealtimeHooks.
-func adminCreateTransaction(app core.App) func(*core.RequestEvent) error {
-	return func(e *core.RequestEvent) error {
-		merchantID := e.Request.FormValue("merchant")
-		amount, err := strconv.ParseFloat(e.Request.FormValue("amount"), 64)
-		if err != nil || amount <= 0 || merchantID == "" {
-			return e.BadRequestError("Merci de renseigner un marchand et un montant valide.", nil)
-		}
-
-		if _, err := app.FindRecordById("merchants", merchantID); err != nil {
-			return e.BadRequestError("Marchand introuvable.", nil)
-		}
-
-		_, err = txn.Create(app, txn.CreateParams{
-			MerchantID:  merchantID,
-			Amount:      amount,
-			Description: e.Request.FormValue("description"),
-			Mode:        txn.ModeLive,
-			CreatedBy:   txn.CreatedByAdmin,
-		})
-		if err != nil {
-			return e.InternalServerError("Failed to create transaction.", err)
-		}
-
-		return e.NoContent(http.StatusCreated)
 	}
 }
 

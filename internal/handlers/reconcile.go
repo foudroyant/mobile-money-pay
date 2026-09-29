@@ -14,6 +14,7 @@ import (
 	"github.com/pocketbase/pocketbase/tools/router"
 
 	"momopay/internal/realtime"
+	"momopay/internal/session"
 	"momopay/internal/txn"
 )
 
@@ -51,14 +52,14 @@ func sweepIntervalLabel() string {
 // already-authenticated /admin group: paste one or more operator-confirmed
 // transaction IDs, get matched against "submitted" transactions immediately,
 // and anything left over is retried by the periodic sweep (StartReconcileLoop).
-func registerAdminReconcileRoutes(g *router.RouterGroup[*core.RequestEvent], app core.App, hub *realtime.Hub) {
-	g.GET("/reconcile", adminReconcilePage(app))
+func registerAdminReconcileRoutes(g *router.RouterGroup[*core.RequestEvent], app core.App, hub *realtime.Hub, store *session.Store) {
+	g.GET("/reconcile", adminReconcilePage(app, store))
 	g.GET("/reconcile/stream", adminReconcileStream(hub))
 	g.POST("/reconcile", adminAddConfirmedRefs(app))
 	g.POST("/reconcile/{id}/delete", adminDeleteConfirmedRef(app))
 }
 
-func adminReconcilePage(app core.App) func(*core.RequestEvent) error {
+func adminReconcilePage(app core.App, store *session.Store) func(*core.RequestEvent) error {
 	return func(e *core.RequestEvent) error {
 		refs, err := app.FindRecordsByFilter(confirmedRefsCollection, "status = 'pending'", "-created", 200, 0)
 		if err != nil {
@@ -74,7 +75,7 @@ func adminReconcilePage(app core.App) func(*core.RequestEvent) error {
 			Rows               []ReconcileRow
 			SweepIntervalLabel string
 		}{
-			Layout:             Layout{Title: "Rapprochement"},
+			Layout:             Layout{Title: "Rapprochement", CSRFToken: store.CSRFToken(e.Request)},
 			Rows:               rows,
 			SweepIntervalLabel: sweepIntervalLabel(),
 		}

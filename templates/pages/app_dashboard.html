@@ -7,6 +7,12 @@
   </form>
 </header>
 <main>
+  <nav class="tabs">
+    <a href="/app" class="active">Transactions</a>
+    <a href="/app/links">Liens de paiement</a>
+    <a href="/app/stats">Statistiques</a>
+  </nav>
+
   <div class="card">
     <h2>Clé API</h2>
     <p class="muted">Utilisez cette clé pour créer des liens de paiement depuis votre application (voir AGENTS.md pour la référence de l'API).</p>
@@ -35,26 +41,8 @@
   </div>
 
   <div class="card">
-    <h2>Nouveau lien de paiement</h2>
-    <form hx-post="/app/transactions" hx-swap="none" hx-on::after-request="if(event.detail.successful) this.reset()">
-      <div class="field">
-        <label for="amount">Montant (FCFA)</label>
-        <input type="number" id="amount" name="amount" min="1" step="1" required>
-      </div>
-      <div class="field">
-        <label for="description">Description</label>
-        <input type="text" id="description" name="description">
-      </div>
-      <div class="field">
-        <label for="success_url">URL de succès (optionnel)</label>
-        <input type="url" id="success_url" name="success_url" placeholder="https://votre-site.cg/merci">
-      </div>
-      <button type="submit" class="btn">Créer le lien</button>
-    </form>
-  </div>
-
-  <div class="card">
     <h2>Mes transactions</h2>
+    <p class="muted">Historique des paiements reçus sur vos liens de paiement. Pour créer un nouveau lien, voir l'onglet « Liens de paiement ».</p>
     <div class="table-wrap">
       <table>
         <thead>

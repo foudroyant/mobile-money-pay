@@ -1,0 +1,35 @@
+{{define "stats_body"}}
+<div class="card">
+  <h2>{{.MerchantName}}</h2>
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="stat-label">Chiffre d'affaires (total)</div>
+      <div class="stat-value">{{xaf .TotalRevenue}}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Ventes validées</div>
+      <div class="stat-value">{{.ValidatedCount}}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">En attente</div>
+      <div class="stat-value">{{.PendingCount}}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Rejetées</div>
+      <div class="stat-value">{{.RejectedCount}}</div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Évolution des ventes validées (30 derniers jours)</h2>
+  <div class="chart">
+    {{range .Days}}
+    <div class="chart-bar-wrap" title="{{.Label}} : {{xaf .Amount}}">
+      <div class="chart-bar" style="height:{{.HeightPct}}%"></div>
+      <div class="chart-label">{{.Label}}</div>
+    </div>
+    {{end}}
+  </div>
+</div>
+{{end}}

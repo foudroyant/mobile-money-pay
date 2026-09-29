@@ -7,6 +7,8 @@ import (
 	"github.com/pocketbase/pocketbase/tools/router"
 
 	"momopay/internal/payid"
+	"momopay/internal/session"
+	"momopay/internal/stats"
 	"momopay/internal/view"
 )
 
@@ -22,11 +24,42 @@ type MerchantsPanel struct {
 // registerAdminMerchantRoutes adds merchant account management under the
 // already-authenticated /admin group: list, create (API key shown once),
 // rotate key, disable/enable.
-func registerAdminMerchantRoutes(g *router.RouterGroup[*core.RequestEvent], app core.App) {
-	g.GET("/merchants", adminMerchantsPage(app))
+func registerAdminMerchantRoutes(g *router.RouterGroup[*core.RequestEvent], app core.App, store *session.Store) {
+	g.GET("/merchants", adminMerchantsPage(app, store))
+	g.GET("/merchants/{id}/stats", adminMerchantStats(app, store))
 	g.POST("/merchants", adminCreateMerchant(app))
 	g.POST("/merchants/{id}/rotate-key", adminRotateMerchantKey(app))
 	g.POST("/merchants/{id}/toggle-status", adminToggleMerchantStatus(app))
+}
+
+const statsWindowDays = 30
+
+// adminMerchantStats shows sales totals and a 30-day evolution chart for
+// any merchant — the merchant-scoped counterpart is appStats in app.go.
+func adminMerchantStats(app core.App, store *session.Store) func(*core.RequestEvent) error {
+	return func(e *core.RequestEvent) error {
+		merchant, err := app.FindRecordById("merchants", e.Request.PathValue("id"))
+		if err != nil {
+			return e.NotFoundError("Marchand introuvable.", nil)
+		}
+
+		summary, err := stats.ForMerchant(app, merchant.Id, statsWindowDays)
+		if err != nil {
+			return e.InternalServerError("Failed to compute stats.", err)
+		}
+
+		data := struct {
+			Layout
+			StatsView
+			MerchantID string
+		}{
+			Layout:     Layout{Title: "Statistiques", CSRFToken: store.CSRFToken(e.Request)},
+			StatsView:  statsViewData(merchant.GetString("name"), summary),
+			MerchantID: merchant.Id,
+		}
+
+		return renderPage(e, "admin_merchant_stats", data)
+	}
 }
 
 func loadMerchantOptions(app core.App) ([]MerchantOption, error) {
@@ -41,7 +74,7 @@ func loadMerchantOptions(app core.App) ([]MerchantOption, error) {
 	return opts, nil
 }
 
-func adminMerchantsPage(app core.App) func(*core.RequestEvent) error {
+func adminMerchantsPage(app core.App, store *session.Store) func(*core.RequestEvent) error {
 	return func(e *core.RequestEvent) error {
 		opts, err := loadMerchantOptions(app)
 		if err != nil {
@@ -52,7 +85,7 @@ func adminMerchantsPage(app core.App) func(*core.RequestEvent) error {
 			Layout
 			MerchantsPanel
 		}{
-			Layout:         Layout{Title: "Marchands"},
+			Layout:         Layout{Title: "Marchands", CSRFToken: store.CSRFToken(e.Request)},
 			MerchantsPanel: MerchantsPanel{Merchants: opts},
 		}
 
